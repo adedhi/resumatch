@@ -1,6 +1,9 @@
 from keybert import KeyBERT
+from matcher.embeddings import best_match, chunk_resume, embed_texts
 
 kw_model = KeyBERT()
+
+MATCH_THRESHOLD = 0.45 # Subject to change
 
 def extract_keywords(text: str, top_n: int = 10) -> list[str]:
     keywords = kw_model.extract_keywords(
@@ -11,15 +14,38 @@ def extract_keywords(text: str, top_n: int = 10) -> list[str]:
     )
     return [kw for kw, score in keywords]
 
-def find_missing_keywords(resume_text: str, jd_text: str, top_n: int = 10) -> list[str]:
+def semantic_keyword_analysis(resume_text: str, jd_text: str, top_n: int = 10) -> list[dict]:
     jd_keywords = extract_keywords(jd_text, top_n=top_n)
-    resume_lower = resume_text.lower()
-    missing = [kw for kw in jd_keywords if kw.lower() not in resume_lower]
-    return missing
+    chunks = chunk_resume(resume_text)
+
+    if not chunks:
+        return [{"keyword": kw, "matched": False, "best_chunk": None, "score": 0.0} for kw in jd_keywords]
+
+    chunk_embeddings = embed_texts(chunks)
+
+    results = []
+    for kw in jd_keywords:
+        chunk, score = best_match(kw, chunk_embeddings, chunks)
+        results.append({
+            "keyword": kw,
+            "matched": score >= MATCH_THRESHOLD,
+            "best_chunk": chunk,
+            "score": score,
+        })
+    return results
+
+# def find_missing_keywords(resume_text: str, jd_text: str, top_n: int = 10) -> list[str]:
+#     jd_keywords = extract_keywords(jd_text, top_n=top_n)
+#     resume_lower = resume_text.lower()
+#     missing = [kw for kw in jd_keywords if kw.lower() not in resume_lower]
+#     return missing
 
 if __name__ == "__main__":
-    resume = "Built REST APIs using Node.js and Express, worked with PostgreSQL"
+    resume = """Built REST APIs using Node.js and Express
+    Containerized services for deployment across environments
+    Worked with PostgreSQL for relational data storage"""
     jd = "Looking for a backend developer with experience in server-side development, Docker, and relational databases like PostgreSQL"
 
     print("JD keywords:", extract_keywords(jd))
-    print("Missing from resume:", find_missing_keywords(resume, jd))
+    for result in semantic_keyword_analysis(resume, jd):
+        print(result)
