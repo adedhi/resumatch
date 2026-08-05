@@ -1,26 +1,43 @@
 from docx import Document
-import io
 import pdfplumber
 
+class ParsingError(Exception):
+    """Raised when a resume file can't be read or contains no usable text."""
+    pass
+
 def extract_text_from_pdf(file) -> str:
-    text_parts = []
-    with pdfplumber.open(file) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text_parts.append(page_text)
-    return "\n".join(text_parts)
+    try:
+        text_parts = []
+        with pdfplumber.open(file) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text_parts.append(page_text)
+        return "\n".join(text_parts)
+    except Exception as e:
+        raise ParsingError(f"Could not read PDF file: {e}")
 
 def extract_text_from_docx(file) -> str:
-    doc = Document(file)
-    return "\n".join(paragraph.text for paragraph in doc.paragraphs if paragraph.text)
+    try:
+        doc = Document(file)
+        return "\n".join(paragraph.text for paragraph in doc.paragraphs if paragraph.text)
+    except Exception as e:
+        raise ParsingError(f"Could not read docx file: {e}")
 
 def extract_text(uploaded_file) -> str:
     filename = uploaded_file.name.lower()
 
     if filename.endswith(".pdf"):
-        return extract_text_from_pdf(uploaded_file)
+        text = extract_text_from_pdf(uploaded_file)
     elif filename.endswith(".docx"):
-        return extract_text_from_docx(uploaded_file)
+        text = extract_text_from_docx(uploaded_file)
     else:
-        raise ValueError(f"Unsupported file type: {filename}")
+        raise ParsingError(f"Unsupported file type: {filename}")
+
+    if not text.strip():
+        raise ParsingError(
+            "No text could be extracted from this file. "
+            "It may be a scanned image rather than selectable text."
+        )
+
+    return text
