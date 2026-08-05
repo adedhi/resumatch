@@ -1,18 +1,45 @@
 from keybert import KeyBERT
 from matcher.embeddings import best_match, chunk_resume, embed_texts
+import re
 
 kw_model = KeyBERT()
 
 MATCH_THRESHOLD = 0.45 # Subject to change
 
+GENERIC_TERMS = {"looking", "like", "experience", "seeking"}
+
+def is_generic(keyword: str) -> bool:
+    words = keyword.lower().split()
+    return any(word in GENERIC_TERMS for word in words)
+
+def split_into_clauses(text: str) -> list[str]:
+    """Split on punctuation so keyword phrases can never span unrelated clauses."""
+    clauses = re.split(r"[,.;]", text)
+    return [c.strip() for c in clauses if len(c.strip()) > 2]
+
 def extract_keywords(text: str, top_n: int = 10) -> list[str]:
-    keywords = kw_model.extract_keywords(
-        text,
-        keyphrase_ngram_range=(1,2),
-        stop_words="english",
-        top_n=top_n,
-    )
-    return [kw for kw, score in keywords]
+    clauses = split_into_clauses(text)
+    if not clauses:
+        clauses = [text]
+
+    all_keywords = []
+    for clause in clauses:
+        keywords = kw_model.extract_keywords(
+            clause,
+            keyphrase_ngram_range=(1,2),
+            stop_words="english",
+            top_n=top_n,
+        )
+        all_keywords.extend(keywords)
+    best_scores = {}
+    for kw, score in all_keywords:
+        kw_lower = kw.lower()
+        if kw_lower not in best_scores or score > best_scores[kw_lower][1]:
+            best_scores[kw_lower] = (kw, score)
+
+    sorted_keywords = sorted(best_scores.values(), key=lambda x: x[1], reverse=True)
+    filtered_keywords = [(kw, score) for kw, score in sorted_keywords if not is_generic(kw)]
+    return [kw for kw, score in filtered_keywords[:top_n]]
 
 def semantic_keyword_analysis(resume_text: str, jd_text: str, top_n: int = 10) -> list[dict]:
     jd_keywords = extract_keywords(jd_text, top_n=top_n)
@@ -65,8 +92,8 @@ if __name__ == "__main__":
     resume = """Built REST APIs using Node.js and Express
     Containerized services for deployment across environments
     Worked with PostgreSQL for relational data storage"""
-    jd = "Looking for a backend developer with experience in server-side development, Docker, and relational databases like PostgreSQL"
+    jd = "Looking for a backend developer with experience in server-side development, Docker, dynamic programming, Seinfeld, and relational databases like PostgreSQL."
 
     print("JD keywords:", extract_keywords(jd))
-    for result in semantic_keyword_analysis(resume, jd):
+    for result in semantic_keyword_analysis(resume, jd, 15):
         print(result)
