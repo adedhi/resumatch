@@ -1,6 +1,5 @@
 import streamlit as st
-from matcher.embeddings import get_similarity
-from matcher.keywords import semantic_keyword_analysis
+from matcher.keywords import compute_match_report
 from matcher.parser import extract_text
 
 st.title("resumatch")
@@ -15,21 +14,17 @@ if st.button("Analyze"):
     else:
         with st.spinner("Analyzing..."):
             resume_text = extract_text(resume_file)
-            score = get_similarity(resume_text, jd_text)
-            keyword_results = semantic_keyword_analysis(resume_text, jd_text)
+            report = compute_match_report(resume_text, jd_text, 15)
 
-        st.metric("Match Score", f"{score:.2f}")
+        st.metric("Match Score", f"{report["overall_score"]:.0%}")
 
-        matched = [r for r in keyword_results if r["matched"]]
-        missing = [r for r in keyword_results if not r["matched"]]
-
-        st.subheader(f"Matched keywords ({len(matched)}/{len(keyword_results)})")
-        for r in matched:
+        st.subheader(f"Matched keywords ({len(report["matched"])/len(report["keyword_results"])})")
+        for r in report["matched"]:
             st.markdown(f"**{r['keyword']}** — matched via: *\"{r['best_chunk']}\"* (score: {r['score']:.2f})")
 
-        if missing:
+        if report["missing"]:
             st.subheader("Keywords not well covered by your resume")
-            for r in missing:
+            for r in report["missing"]:
                 st.markdown(f"- **{r['keyword']}** (closest line scored {r['score']:.2f})")
         else:
             st.success("No major keyword gaps found!")
