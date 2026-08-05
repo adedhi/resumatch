@@ -34,6 +34,27 @@ def semantic_keyword_analysis(resume_text: str, jd_text: str, top_n: int = 10) -
         })
     return results
 
+def compute_match_report(resume_text: str, jd_text: str, top_n: int = 10) -> dict:
+    results = semantic_keyword_analysis(resume_text, jd_text, top_n=top_n)
+
+    if not results:
+        return {"overall_score": 0.0, "matched": [], "missing": [], "keyword_results": []}
+
+    matched = [r for r in results if r["matched"]]
+    missing = [r for r in results if not r["matched"]]
+
+    # overall score = fraction of job description keywords matched, weighed slightly by how strong each match is
+    coverage = len(matched) / len(results)
+    avg_strength = sum(r["score"] for r in results) / len(results)
+    overall_score = (coverage * 0.7) + (avg_strength * 0.3)
+
+    return {
+        "overall_score": overall_score,
+        "matched": matched,
+        "missing": missing,
+        "keyword_results": results,
+    }
+
 # def find_missing_keywords(resume_text: str, jd_text: str, top_n: int = 10) -> list[str]:
 #     jd_keywords = extract_keywords(jd_text, top_n=top_n)
 #     resume_lower = resume_text.lower()
