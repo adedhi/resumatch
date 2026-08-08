@@ -1,7 +1,10 @@
+import re
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
+
+BULLET_PATTERN = re.compile(r"^[•\-\*\u2022\u25AA\u25E6\u2023]\s*")
 
 def get_similarity(text1: str, text2: str) -> float:
     embeddings = model.encode([text1, text2])
@@ -10,9 +13,23 @@ def get_similarity(text1: str, text2: str) -> float:
 
 def chunk_resume(resume_text: str) -> list[str]:
     """Splits resume text into individual lines/points"""
-    lines = resume_text.split("\n")
-    chunks = [line.strip() for line in lines if len(line.strip()) > 15] # Drops lines under 16 characters
-    return chunks
+    raw_lines = [line.strip() for line in resume_text.split("\n") if line.strip()]
+
+    chunks = []
+    current_line = ""
+    for line in raw_lines:
+        is_bullet_start = bool(BULLET_PATTERN.match(line))
+        if is_bullet_start:
+            if current_line:
+                chunks.append(current_line)
+            current_line = BULLET_PATTERN.sub("", line)
+        else:
+            current_line = f"{current_line} {line}".strip() if current_line else line
+
+    if current_line:
+        chunks.append(current_line)
+
+    return [c for c in chunks if len(c) > 15]
 
 def embed_texts(texts: list[str]):
     return model.encode(texts) # Batches all chunks in one call

@@ -21,7 +21,10 @@ if st.button("Analyze"):
         else:
             st.metric("Match Score", f"{report["overall_score"]:.0%}")
 
-            st.subheader(f"Matched keywords ({len(report["matched"])/len(report["keyword_results"])})")
+            if report["keyword_results"]:
+                st.subheader(f"Matched keywords ({len(report["matched"])/len(report["keyword_results"])})")
+            else:
+                st.subheader("Matched keywords (0/0)")
             for r in report["matched"]:
                 st.markdown(f"**{r['keyword']}** — matched via: *\"{r['best_chunk']}\"* (score: {r['score']:.2f})")
 
