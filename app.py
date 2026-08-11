@@ -21,17 +21,21 @@ if st.button("Analyze"):
         else:
             st.metric("Match Score", f"{report["overall_score"]:.0%}")
 
+            matched_sorted = sorted(report["matched"], key=lambda r: r["importance"], reverse=True)
+            missing_sorted = sorted(report["missing"], key=lambda r: r["importance"], reverse=True)
+
             if report["keyword_results"]:
                 st.subheader(f"Matched keywords ({len(report["matched"])/len(report["keyword_results"]):.2f})")
             else:
                 st.subheader("Matched keywords (0/0)")
-            for r in report["matched"]:
-                st.markdown(f"**{r['keyword']}** (importance: {r['importance']:.2f}) — matched via: *\"{r['best_chunk']}\"* (score: {r['score']:.2f})")
+            for r in matched_sorted:
+                st.markdown(f"**{r['keyword']}** — matched via: *\"{r['best_chunk']}\"* (score: {r['score']:.2f})")
 
-            if report["missing"]:
+            if missing_sorted:
                 st.subheader("Keywords not well covered by your resume")
-                for r in report["missing"]:
-                    st.markdown(f"- **{r['keyword']}** (closest line scored {r['score']:.2f})")
+                for r in missing_sorted:
+                    urgency = "🔴" if r["importance"] > 0.6 else "🟡"
+                    st.markdown(f"{urgency} **{r['keyword']}** (closest line scored {r['score']:.2f})")
             else:
                 st.success("No major keyword gaps found!")
 
