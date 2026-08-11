@@ -40,4 +40,10 @@ def extract_text(uploaded_file) -> str:
             "It may be a scanned image rather than selectable text."
         )
 
+    if len(text.strip()) < 50:
+        raise ParsingError(
+            "Very little text could be extracted from this file. "
+            "It may be image-based or have a complex layout that isn't parsing well."
+        )
+
     return text
