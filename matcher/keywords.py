@@ -7,7 +7,7 @@ kw_model = KeyBERT()
 MATCH_THRESHOLD = 0.45 # Subject to change
 MIN_KEYWORD_SCORE = 0.15 # Subject to change
 
-GENERIC_TERMS = {"looking", "like", "experience", "seeking"}
+GENERIC_TERMS = {"looking", "like", "experience", "seeking", "need"}
 
 def is_generic(keyword: str) -> bool:
     words = keyword.lower().split()
@@ -26,7 +26,7 @@ def split_into_clauses(text: str) -> list[str]:
     clauses = re.split(r"[,.;]", text)
     return [c.strip() for c in clauses if len(c.strip()) > 2]
 
-def extract_keywords(text: str, top_n: int = 10) -> list[str]:
+def extract_keywords(text: str, top_n: int = 10) -> list[tuple[str, float]]:
     clauses = split_into_clauses(text)
     if not clauses:
         clauses = [text]
@@ -50,8 +50,7 @@ def extract_keywords(text: str, top_n: int = 10) -> list[str]:
     filtered_keywords = [(kw, score) for kw, score in sorted_keywords if not is_generic(kw) and score >= MIN_KEYWORD_SCORE]
     deduped_keywords_list = remove_substring_duplicates([kw for kw, score in filtered_keywords])
     final_keywords = [(kw, score) for kw, score in filtered_keywords if kw in deduped_keywords_list]
-    temp = [kw for kw, score in final_keywords[:top_n]]
-    return [kw for kw, score in final_keywords[:top_n]]
+    return final_keywords[:top_n]
 
 def semantic_keyword_analysis(resume_text: str, jd_text: str, top_n: int = 10) -> list[dict]:
     jd_keywords = extract_keywords(jd_text, top_n=top_n)
@@ -63,10 +62,11 @@ def semantic_keyword_analysis(resume_text: str, jd_text: str, top_n: int = 10) -
     chunk_embeddings = embed_texts(chunks)
 
     results = []
-    for kw in jd_keywords:
+    for kw, importance in jd_keywords:
         chunk, score = best_match(kw, chunk_embeddings, chunks)
         results.append({
             "keyword": kw,
+            "importance": importance,
             "matched": score >= MATCH_THRESHOLD,
             "best_chunk": chunk,
             "score": score,
@@ -82,8 +82,10 @@ def compute_match_report(resume_text: str, jd_text: str, top_n: int = 10) -> dic
     matched = [r for r in results if r["matched"]]
     missing = [r for r in results if not r["matched"]]
 
+    total_importance = sum(r["importance"] for r in results)
+
     # overall score = fraction of job description keywords matched, weighed slightly by how strong each match is
-    coverage = len(matched) / len(results)
+    coverage = sum(r["importance"] for r in matched) / total_importance if total_importance > 0 else 0.0
     avg_strength = sum(r["score"] for r in results) / len(results)
     overall_score = (coverage * 0.7) + (avg_strength * 0.3)
 
