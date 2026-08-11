@@ -22,11 +22,11 @@ if st.button("Analyze"):
             st.metric("Match Score", f"{report["overall_score"]:.0%}")
 
             if report["keyword_results"]:
-                st.subheader(f"Matched keywords ({len(report["matched"])/len(report["keyword_results"])})")
+                st.subheader(f"Matched keywords ({len(report["matched"])/len(report["keyword_results"]):.2f})")
             else:
                 st.subheader("Matched keywords (0/0)")
             for r in report["matched"]:
-                st.markdown(f"**{r['keyword']}** — matched via: *\"{r['best_chunk']}\"* (score: {r['score']:.2f})")
+                st.markdown(f"**{r['keyword']}** (importance: {r['importance']:.2f}) — matched via: *\"{r['best_chunk']}\"* (score: {r['score']:.2f})")
 
             if report["missing"]:
                 st.subheader("Keywords not well covered by your resume")

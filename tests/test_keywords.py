@@ -9,24 +9,24 @@ Worked with PostgreSQL for relational data storage"""
 
 def test_extract_keywords_does_not_merge_across_clauses():
     keywords = extract_keywords(SAMPLE_JD)
-    lowered = [kw.lower() for kw in keywords]
+    lowered = [kw.lower() for kw, importance in keywords]
     assert "docker dynamic" not in lowered
     assert "seinfeld relational" not in lowered
     
 def test_extract_keywords_finds_real_multiword_terms():
     keywords = extract_keywords(SAMPLE_JD)
     print(keywords)
-    assert any("dynamic programming" in kw.lower() for kw in keywords)
+    assert any("dynamic programming" in kw.lower() for kw, importance in keywords)
 
 def test_extract_keywords_drops_generic_filler_terms():
     keywords = extract_keywords(SAMPLE_JD)
-    lowered = [kw.lower() for kw in keywords]
+    lowered = [kw.lower() for kw, importance in keywords]
     for generic in ["looking", "like", "experience"]:
         assert generic not in lowered
 
 def test_extract_keywords_removes_substring_duplicates():
     keywords = extract_keywords(SAMPLE_JD)
-    lowered = [kw.lower() for kw in keywords]
+    lowered = [kw.lower() for kw, importance in keywords]
     assert not ("databases" in lowered and "relational databases" in lowered)
 
 def test_compute_match_report_matched_and_missing_cover_all_keywords():
