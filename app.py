@@ -1,6 +1,24 @@
+import io
 import streamlit as st
 from matcher.keywords import compute_match_report
 from matcher.parser import extract_text, ParsingError
+
+@st.cache_data
+def cached_extract_text(file_bytes: bytes, filename: str) -> str:
+    class _BytesFile:
+        def __init__(self, data: bytes, name: str):
+            self.name = name
+            self._buffer = io.BytesIO(data)
+
+        def __getattr__(self, attr):
+            return getattr(self._buffer, attr)
+
+    fake_file = _BytesFile(file_bytes, filename)
+    return extract_text(fake_file)
+
+@st.cache_data
+def cached_compute_match_report(resume_text: str, jd_text: str, top_n: int = 10) -> dict:
+    return compute_match_report(resume_text, jd_text, top_n)
 
 st.title("resumatch")
 st.write("Upload your resume and paste a job description to see how well they match.")
@@ -14,8 +32,8 @@ if st.button("Analyze"):
     else:
         try:
             with st.spinner("Analyzing..."):
-                resume_text = extract_text(resume_file)
-                report = compute_match_report(resume_text, jd_text, 15)
+                resume_text = cached_extract_text(resume_file.getvalue(), resume_file.name)
+                report = cached_compute_match_report(resume_text, jd_text, 15)
         except ParsingError as e:
             st.error(str(e))
         else:

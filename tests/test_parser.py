@@ -11,10 +11,13 @@ class FakeUploadedFile:
         return getattr(self._file, attr)
 
 def test_extract_text_from_docx():
-    fake_file = FakeUploadedFile("tests/documents/sample_resume.docx")
-    text = extract_text(fake_file)
+    text = extract_text(FakeUploadedFile("tests/documents/sample_resume.docx"))
     assert len(text) > 0
 
-def text_unsupported_file_type_raises():
+def test_unsupported_file_type_raises():
     with pytest.raises(ParsingError):
         extract_text(FakeUploadedFile("tests/documents/sample_resume.txt"))
+
+def test_insufficient_resume_text():
+    with pytest.raises(ParsingError):
+        extract_text(FakeUploadedFile("tests/documents/sample_short_resume.docx"))
