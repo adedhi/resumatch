@@ -3,6 +3,8 @@ import streamlit as st
 from matcher.keywords import compute_match_report
 from matcher.parser import extract_text, ParsingError
 
+MAX_FILE_SIZE_MB = 5
+
 @st.cache_data
 def cached_extract_text(file_bytes: bytes, filename: str) -> str:
     class _BytesFile:
@@ -29,6 +31,8 @@ jd_text = st.text_area("Paste the job description", height=250)
 if st.button("Analyze"):
     if not resume_file or not jd_text.strip():
         st.warning("Please upload a resume and paste a job description.")
+    elif resume_file.size > MAX_FILE_SIZE_MB * 1024 * 1024:
+        st.error(f"File too large. Please upload a resume under {MAX_FILE_SIZE_MB}MB.")
     else:
         try:
             with st.spinner("Analyzing..."):
