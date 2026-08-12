@@ -61,5 +61,5 @@ if st.button("Analyze"):
             else:
                 st.success("No major keyword gaps found!")
 
-            with st.expander("Extracted resume text (for debugging)"):
+            with st.expander("Extracted resume text"):
                 st.text(resume_text)
