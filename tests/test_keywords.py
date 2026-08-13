@@ -1,7 +1,7 @@
 from matcher.keywords import extract_keywords, semantic_keyword_analysis, compute_match_report
 
 SAMPLE_JD = """Looking for a backend developer with experience in server-side development,
-Docker, dynamic programming, Seinfeld, and relational databases like PostgreSQL."""
+Docker, dynamic programming, and relational databases like PostgreSQL."""
 
 SAMPLE_RESUME = """Built REST APIs using Node.js and Express
 Containerized services for deployment across environments

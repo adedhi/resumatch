@@ -2,7 +2,7 @@ import re
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = SentenceTransformer("all-mpnet-base-v2")
 
 BULLET_PATTERN = re.compile(r"^[•\-\*\u2022\u25AA\u25E6\u2023]\s*")
 
@@ -14,6 +14,11 @@ def get_similarity(text1: str, text2: str) -> float:
 def chunk_resume(resume_text: str) -> list[str]:
     """Splits resume text into individual lines/points"""
     raw_lines = [line.strip() for line in resume_text.split("\n") if line.strip()]
+
+    has_bullet_markers = any(BULLET_PATTERN.match(line) for line in raw_lines)
+
+    if not has_bullet_markers:
+        return [line for line in raw_lines if len(line) > 15]
 
     chunks = []
     current_line = ""

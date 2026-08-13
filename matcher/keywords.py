@@ -4,7 +4,7 @@ import re
 
 kw_model = KeyBERT()
 
-MATCH_THRESHOLD = 0.45 # Subject to change
+MATCH_THRESHOLD = 0.4 # Subject to change
 MIN_KEYWORD_SCORE = 0.15 # Subject to change
 
 GENERIC_TERMS = {"looking", "like", "experience", "seeking", "need", "needs"}
