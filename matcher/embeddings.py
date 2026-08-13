@@ -1,8 +1,10 @@
 import re
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+import spacy
 
 model = SentenceTransformer("all-mpnet-base-v2")
+nlp = spacy.load("en_core_web_sm")
 
 BULLET_PATTERN = re.compile(r"^[•\-\*\u2022\u25AA\u25E6\u2023]\s*")
 
@@ -18,23 +20,33 @@ def chunk_resume(resume_text: str) -> list[str]:
     has_bullet_markers = any(BULLET_PATTERN.match(line) for line in raw_lines)
 
     if not has_bullet_markers:
-        return [line for line in raw_lines if len(line) > 15]
+        merged = [line for line in raw_lines if len(line) > 15]
+    else:
+        merged = []
+        current_line = ""
+        for line in raw_lines:
+            is_bullet_start = bool(BULLET_PATTERN.match(line))
+            if is_bullet_start:
+                if current_line:
+                    merged.append(current_line)
+                current_line = BULLET_PATTERN.sub("", line)
+            else:
+                current_line = f"{current_line} {line}".strip() if current_line else line
+
+        if current_line:
+            merged.append(current_line)
+
+        merged = [c for c in merged if len(c) > 15]
 
     chunks = []
-    current_line = ""
-    for line in raw_lines:
-        is_bullet_start = bool(BULLET_PATTERN.match(line))
-        if is_bullet_start:
-            if current_line:
-                chunks.append(current_line)
-            current_line = BULLET_PATTERN.sub("", line)
-        else:
-            current_line = f"{current_line} {line}".strip() if current_line else line
+    for bullet in merged:
+        doc = nlp(bullet)
+        for sentence in doc.sents:
+            sentence_text = sentence.text.strip()
+            if len(sentence_text) > 15:
+                chunks.append(sentence_text)
 
-    if current_line:
-        chunks.append(current_line)
-
-    return [c for c in chunks if len(c) > 15]
+    return chunks
 
 def embed_texts(texts: list[str]):
     return model.encode(texts) # Batches all chunks in one call
